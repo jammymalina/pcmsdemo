@@ -1,10 +1,20 @@
+import ComponentState from './componentState';
+
 class Component {
-  state: object;
+  state: ComponentState;
   element: HTMLElement;
 
   constructor(element: HTMLElement) {
     this.state = {};
     this.element = element;
+  }
+
+  inject(container: HTMLElement) {
+    container.appendChild(this.element);
+  }
+
+  async render(): Promise<void> {
+    return Promise.resolve();
   }
 }
 

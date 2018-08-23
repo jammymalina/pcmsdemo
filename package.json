@@ -9,14 +9,18 @@
   "author": "Jakub Jantosik",
   "license": "ISC",
   "devDependencies": {
+    "@types/feather-icons": "^4.7.0",
     "@types/jquery": "^3.3.6",
+    "@types/uuid": "^3.4.3",
     "ts-loader": "^4.5.0",
     "typescript": "^3.0.1",
-    "webpack": "^4.17.0",
+    "webpack": "^4.17.1",
     "webpack-cli": "^3.1.0",
     "webpack-dev-server": "^3.1.5"
   },
   "dependencies": {
-    "aws-sdk": "^2.297.0"
+    "aws-sdk": "^2.297.0",
+    "feather-icons": "^4.7.3",
+    "uuid": "^3.3.2"
   }
 }

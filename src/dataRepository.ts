@@ -1,14 +1,108 @@
 import DataRepositoryConfig from './dataRepositoryConfig';
 import AWS from 'aws-sdk';
+import splitToChunks from './splitArray';
 
 class DataRepository {
-  tableName: string;
-  region: string;
-  accessKeyId: string;
-  secretAccessKey: string;
+  private _tableName: string;
+  private primaryKey: string;
+  private dynamodb: AWS.DynamoDB;
+  private documentClient: AWS.DynamoDB.DocumentClient;
+  private _data: Array<object>;
 
   constructor(config: DataRepositoryConfig) {
-    this.tableName = config.tableName;
+    this._tableName = config.tableName;
+    this.dynamodb = new AWS.DynamoDB({
+      accessKeyId: config.accessKeyId,
+      secretAccessKey: config.secretAccessKey,
+      region: config.region
+    });
+    this.documentClient = new AWS.DynamoDB.DocumentClient({
+      service: this.dynamodb
+    });
+    this._data = [];
+  }
+
+  get data(): Array<any> {
+    return [...this._data];
+  }
+
+  get size(): number {
+    return this.data.length;
+  }
+
+  get tableName(): string {
+    return this._tableName;
+  }
+
+  get dataKeys(): Array<string> {
+    const allKeys = this.data
+      .map(x => Object.keys(x))
+      .reduce((accumulator, currentValue) => accumulator.concat(currentValue), []);
+    const keySet = new Set<string>(allKeys);
+    return Array.from(keySet);
+  }
+
+  async init() {
+    try {
+      const tableInfo = await this.dynamodb.describeTable({ TableName: this._tableName }).promise();
+      this.primaryKey = tableInfo.Table.KeySchema && tableInfo.Table.KeySchema.length > 0 ? 
+        tableInfo.Table.KeySchema[0].AttributeName : '';
+      await this.refresh();
+    } catch (err) {
+      console.log(`Unable to init repository: ${err.message}`);
+    }
+  }
+
+  private async deleteChunk(chunk: Array<any>) {
+    const deleteRequests = chunk.map(x => ({
+      DeleteRequest: {
+        Key: { [this.primaryKey]: x }
+      }
+    }));
+    const params = {
+      RequestItems: {
+        [this._tableName]: deleteRequests
+      }
+    }
+    try {
+      await this.documentClient.batchWrite(params).promise();
+      return chunk;
+    } catch (err) {
+      console.log(`Unable to delete chunk from the table ${this._tableName}`);
+      return [];
+    }
+  }
+
+  async delete(...ids: Array<string>) {
+    const deleteChunks = splitToChunks(ids, 25);
+    const promises = deleteChunks.map(chunk => this.deleteChunk(chunk));
+    const result = await Promise.all(promises);
+    return result.reduce((accumulator, currentValue) => accumulator.concat(currentValue), []);
+  }
+
+  async getAllItems() {
+    const items = [];
+    try {
+      let scanResult = await this.documentClient.scan({ TableName: this._tableName }).promise();
+      items.push(...scanResult.Items);
+      while (scanResult.LastEvaluatedKey) {
+        scanResult = await this.documentClient.scan({
+          TableName: this._tableName,
+          ExclusiveStartKey: scanResult.LastEvaluatedKey
+        }).promise();
+        items.push(...scanResult.Items);
+      }
+      this._data = [...this._data, ...items];
+    } catch (err) {
+      console.log(`Unable to fetch the data from the table ${this._tableName}: ${err.message || 'no info'}`);
+    }
+    
+    return this._data;
+  }
+
+  async refresh() {
+    this._data = [];
+    return this.getAllItems();
   }
 }
 
