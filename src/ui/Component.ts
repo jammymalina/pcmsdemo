@@ -1,4 +1,4 @@
-import ComponentState from './componentState';
+import ComponentState from './ComponentState';
 
 class Component {
   state: ComponentState;

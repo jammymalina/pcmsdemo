@@ -1,13 +1,13 @@
-import DataRepositoryConfig from './dataRepositoryConfig';
+import DataRepositoryConfig from './DataRepositoryConfig';
 import AWS from 'aws-sdk';
-import splitToChunks from './splitArray';
+import splitArray from './splitArray';
 
 class DataRepository {
   private _tableName: string;
   private _primaryKey: string;
   private dynamodb: AWS.DynamoDB;
   private documentClient: AWS.DynamoDB.DocumentClient;
-  private _data: Array<object>;
+  private _data: any[];
 
   constructor(config: DataRepositoryConfig) {
     this._tableName = config.tableName;
@@ -22,7 +22,7 @@ class DataRepository {
     this._data = [];
   }
 
-  get data(): Array<any> {
+  get data(): any[] {
     return [...this._data];
   }
 
@@ -38,7 +38,7 @@ class DataRepository {
     return this._primaryKey;
   }
 
-  get dataKeys(): Array<string> {
+  get dataKeys(): string[] {
     const allKeys = this.data
       .map(x => Object.keys(x))
       .reduce((accumulator, currentValue) => accumulator.concat(currentValue), []);
@@ -49,7 +49,7 @@ class DataRepository {
   async init() {
     try {
       const tableInfo = await this.dynamodb.describeTable({ TableName: this._tableName }).promise();
-      this._primaryKey = tableInfo.Table.KeySchema && tableInfo.Table.KeySchema.length > 0 ? 
+      this._primaryKey = tableInfo.Table.KeySchema && tableInfo.Table.KeySchema.length > 0 ?
         tableInfo.Table.KeySchema[0].AttributeName : '';
       await this.refresh();
     } catch (err) {
@@ -57,7 +57,7 @@ class DataRepository {
     }
   }
 
-  private async deleteChunk(chunk: Array<any>) {
+  private async deleteChunk(chunk: any[]) {
     const deleteRequests = chunk.map(x => ({
       DeleteRequest: {
         Key: { [this._primaryKey]: x }
@@ -67,7 +67,7 @@ class DataRepository {
       RequestItems: {
         [this._tableName]: deleteRequests
       }
-    }
+    };
     try {
       await this.documentClient.batchWrite(params).promise();
       return chunk;
@@ -77,11 +77,11 @@ class DataRepository {
     }
   }
 
-  async delete(...ids: Array<string>): Promise<Array<string>> {
+  async delete(...ids: string[]): Promise<string[]> {
     if (ids.length === 0) {
       return Promise.resolve([]);
     }
-    const deleteChunks = splitToChunks(ids, 25);
+    const deleteChunks = splitArray(ids, 25);
     const promises = deleteChunks.map(chunk => this.deleteChunk(chunk));
     const result = await Promise.all(promises);
     await this.refresh();
@@ -104,7 +104,7 @@ class DataRepository {
     } catch (err) {
       console.log(`Unable to fetch the data from the table ${this._tableName}: ${err.message || 'no info'}`);
     }
-    
+
     return this._data;
   }
 

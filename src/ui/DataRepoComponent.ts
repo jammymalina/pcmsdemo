@@ -1,7 +1,7 @@
 import feather from 'feather-icons';
 import uuid from 'uuid/v4';
-import Component from './component';
-import DataRepository from '../dataRepository';
+import Component from './Component';
+import DataRepository from '../DataRepository';
 
 class DataRepoComponent extends Component {
   private tableElement: HTMLTableElement;
@@ -9,7 +9,7 @@ class DataRepoComponent extends Component {
   private settingsButton: HTMLButtonElement;
   private refreshButton: HTMLButtonElement;
   private removeButton: HTMLButtonElement;
-  private checkButton: HTMLButtonElement; 
+  private checkButton: HTMLButtonElement;
 
   constructor(dataRepository: DataRepository) {
     super(document.createElement('div'));
@@ -100,7 +100,7 @@ class DataRepoComponent extends Component {
 
     const tBody = document.createElement('tbody');
     const data = this.state.repository.data;
-    const tbodyChildren: Array<HTMLTableRowElement> = data.map((item: any) => {
+    const tbodyChildren: HTMLTableRowElement[] = data.map((item: any) => {
       const primaryKey = Object.prototype.hasOwnProperty.call(item, this.state.repository.tablePrimaryKey) ?
         item[this.state.repository.tablePrimaryKey] : '';
 
@@ -126,12 +126,12 @@ class DataRepoComponent extends Component {
         checkbox.checked = true;
       }
       checkbox.addEventListener('change', this.selectCheckboxChange.bind(this));
-      
+
       const label = document.createElement('label');
       label.setAttribute('for', checkboxId);
       label.classList.add('form-check-label');
       label.innerHTML = primaryKey;
-      
+
       formContainer.appendChild(checkbox);
       formContainer.appendChild(label);
       primaryKeyTH.appendChild(formContainer);
@@ -163,14 +163,14 @@ class DataRepoComponent extends Component {
   private createUI() {
     this.panelElement = document.createElement('ul');
     this.panelElement.classList.add('nav', 'justify-content-between');
-    
+
     this.settingsButton = this.createButton('settings', this.settingsButtonClick.bind(this));
     this.refreshButton = this.createButton('refresh-ccw', this.refreshButtonClick.bind(this));
     this.removeButton = this.createButton('trash-2', this.removeButtonClick.bind(this));
     this.checkButton = this.createButton('check', this.checkButtonClick.bind(this));
 
     this.panelElement.appendChild(this.checkButton);
-    
+
     const buttonContainer = document.createElement('div');
     buttonContainer.appendChild(this.settingsButton);
     buttonContainer.appendChild(this.refreshButton);
@@ -199,14 +199,14 @@ class DataRepoComponent extends Component {
   }
 
   private toggleSettingsButton() {
-    const icon = (this.state.selected.size > 0 && this.state.selected.size >= this.state.repository.size) ? 
+    const icon = (this.state.selected.size > 0 && this.state.selected.size >= this.state.repository.size) ?
       'x' : 'check';
     this.checkButton.innerHTML = `<i data-feather="${icon}"></i>`;
     feather.replace();
   }
 
   private toggleCheckBoxes() {
-    const checkboxes = Array.from(document.getElementsByClassName('data-checkbox')) as Array<HTMLInputElement>;
+    const checkboxes = Array.from(document.getElementsByClassName('data-checkbox')) as HTMLInputElement[];
     checkboxes.forEach(checkbox => checkbox.checked = this.state.selected.has(checkbox.dataset.key));
   }
 }
