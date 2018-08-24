@@ -1,7 +1,7 @@
 import config from './config.json'
 import DataRepository from './dataRepository';
 import DataRepoComponent from './ui/dataRepoComponent';
-import { replace } from 'feather-icons';
+import feather from 'feather-icons';
 
 document.addEventListener('DOMContentLoaded', async () =>  {
   const alertRepo = new DataRepository(config.dataRepositories[0]);
@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async () =>  {
   
   alertComponent.inject(document.getElementById('alertdata'));
   devicesoftwareComponent.inject(document.getElementById('devicesoftwaredata'));
-  replace();
+  feather.replace();
   const repoRenders = [alertComponent.render(), devicesoftwareComponent.render()];
   await Promise.all(repoRenders);
   console.log('Ready');

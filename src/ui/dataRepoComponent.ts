@@ -1,6 +1,7 @@
+import feather from 'feather-icons';
+import uuid from 'uuid/v4';
 import Component from './component';
 import DataRepository from '../dataRepository';
-import uuid from 'uuid/v4';
 
 class DataRepoComponent extends Component {
   private tableElement: HTMLTableElement;
@@ -22,9 +23,7 @@ class DataRepoComponent extends Component {
   async render() {
     this.refreshDataTable();
     this.highlightTableRows();
-    const icon = (this.state.selected.size > 0 && this.state.selected.size >= this.state.repository.size) ? 
-      'x' : 'check';
-    this.checkButton.innerHTML = `<i data-feather="${icon}"></i>`;
+    this.toggleSettingsButton();
   }
 
   private async settingsButtonClick() {
@@ -37,17 +36,38 @@ class DataRepoComponent extends Component {
   }
 
   private async removeButtonClick() {
-
+    if (this.state.selected.size === 0) {
+      return;
+    }
+    const deleted = await this.state.repository.delete(Array.from(this.state.selected));
+    deleted.forEach((d: string) => this.state.selected.delete(d));
+    await this.render();
   }
 
   private async checkButtonClick() {
+    this.selectAll();
+  }
 
+  private selectAll() {
+    if (this.state.repository.size === 0) {
+      return;
+    }
+    const selected = this.state.selected;
+    const selectAction = selected.size >= this.state.repository.size ?
+      selected.clear.bind(selected) : () => this.state.repository.data.forEach((item: any) => {
+        const pkName = this.state.repository.tablePrimaryKey;
+        if (Object.prototype.hasOwnProperty.call(item, pkName)) {
+          selected.add(item[pkName]);
+        }
+      });
+    selectAction();
+    this.onSelectChange();
   }
 
   private selectCheckboxChange(event: Event) {
-    const checkBox = event.target as HTMLInputElement;
-    const key = checkBox.dataset.key;
-    if (checkBox.checked) {
+    const checkbox = event.target as HTMLInputElement;
+    const key = checkbox.dataset.key;
+    if (checkbox.checked) {
       this.state.selected.add(key);
     } else {
       this.state.selected.delete(key);
@@ -56,13 +76,15 @@ class DataRepoComponent extends Component {
   }
 
   private onSelectChange() {
-    this.render();
+    this.highlightTableRows();
+    this.toggleSettingsButton();
+    this.toggleCheckBoxes();
   }
 
   private refreshDataTable() {
     this.clearDataTable();
     const dataKeys = new Set<string>(this.state.repository.dataKeys);
-    dataKeys.delete(this.state.repository.primaryKey);
+    dataKeys.delete(this.state.repository.tablePrimaryKey);
 
     const tHead = document.createElement('thead');
     const orderedKeys = Array.from(dataKeys);
@@ -70,7 +92,7 @@ class DataRepoComponent extends Component {
     tHead.innerHTML = `
       <thead>
         <tr>
-          <th scope="col">${this.state.repository.primaryKey}</th>
+          <th scope="col">${this.state.repository.tablePrimaryKey}</th>
           ${thHTML}
         </tr>
       </thead>
@@ -79,8 +101,8 @@ class DataRepoComponent extends Component {
     const tBody = document.createElement('tbody');
     const data = this.state.repository.data;
     const tbodyChildren: Array<HTMLTableRowElement> = data.map((item: any) => {
-      const primaryKey = Object.prototype.hasOwnProperty.call(item, this.state.repository.primaryKey) ?
-        item[this.state.repository.primaryKey] : '';
+      const primaryKey = Object.prototype.hasOwnProperty.call(item, this.state.repository.tablePrimaryKey) ?
+        item[this.state.repository.tablePrimaryKey] : '';
 
       const tr = document.createElement('tr');
       tr.setAttribute('id', primaryKey);
@@ -92,25 +114,25 @@ class DataRepoComponent extends Component {
       const formContainer = document.createElement('div');
       formContainer.classList.add('form-check', 'form-check-inline');
 
-      const checkBoxId = uuid();
+      const checkboxId = uuid();
 
-      const checkBox = document.createElement('input');
-      checkBox.setAttribute('type', 'checkbox');
-      checkBox.setAttribute('id', checkBoxId);
-      checkBox.setAttribute('data-key', primaryKey);
-      checkBox.classList.add('form-check-input');
-      checkBox.style.display = 'none';
+      const checkbox = document.createElement('input');
+      checkbox.setAttribute('type', 'checkbox');
+      checkbox.setAttribute('id', checkboxId);
+      checkbox.setAttribute('data-key', primaryKey);
+      checkbox.classList.add('form-check-input', 'data-checkbox');
+      checkbox.style.display = 'none';
       if (this.state.selected.has(primaryKey)) {
-        checkBox.checked = true;
+        checkbox.checked = true;
       }
-      checkBox.addEventListener('change', this.selectCheckboxChange.bind(this));
+      checkbox.addEventListener('change', this.selectCheckboxChange.bind(this));
       
       const label = document.createElement('label');
-      label.setAttribute('for', checkBoxId);
+      label.setAttribute('for', checkboxId);
       label.classList.add('form-check-label');
       label.innerHTML = primaryKey;
       
-      formContainer.appendChild(checkBox);
+      formContainer.appendChild(checkbox);
       formContainer.appendChild(label);
       primaryKeyTH.appendChild(formContainer);
 
@@ -174,6 +196,18 @@ class DataRepoComponent extends Component {
   private highlightTableRows() {
     Array.from(document.getElementsByClassName(this.state.repository.tableName)).forEach(tr => tr.classList.remove('table-active'));
     Array.from(this.state.selected).forEach((id: string) => document.getElementById(id).classList.add('table-active'));
+  }
+
+  private toggleSettingsButton() {
+    const icon = (this.state.selected.size > 0 && this.state.selected.size >= this.state.repository.size) ? 
+      'x' : 'check';
+    this.checkButton.innerHTML = `<i data-feather="${icon}"></i>`;
+    feather.replace();
+  }
+
+  private toggleCheckBoxes() {
+    const checkboxes = Array.from(document.getElementsByClassName('data-checkbox')) as Array<HTMLInputElement>;
+    checkboxes.forEach(checkbox => checkbox.checked = this.state.selected.has(checkbox.dataset.key));
   }
 }
 

@@ -4,7 +4,7 @@ import splitToChunks from './splitArray';
 
 class DataRepository {
   private _tableName: string;
-  private primaryKey: string;
+  private _primaryKey: string;
   private dynamodb: AWS.DynamoDB;
   private documentClient: AWS.DynamoDB.DocumentClient;
   private _data: Array<object>;
@@ -34,6 +34,10 @@ class DataRepository {
     return this._tableName;
   }
 
+  get tablePrimaryKey(): string {
+    return this._primaryKey;
+  }
+
   get dataKeys(): Array<string> {
     const allKeys = this.data
       .map(x => Object.keys(x))
@@ -45,7 +49,7 @@ class DataRepository {
   async init() {
     try {
       const tableInfo = await this.dynamodb.describeTable({ TableName: this._tableName }).promise();
-      this.primaryKey = tableInfo.Table.KeySchema && tableInfo.Table.KeySchema.length > 0 ? 
+      this._primaryKey = tableInfo.Table.KeySchema && tableInfo.Table.KeySchema.length > 0 ? 
         tableInfo.Table.KeySchema[0].AttributeName : '';
       await this.refresh();
     } catch (err) {
@@ -56,7 +60,7 @@ class DataRepository {
   private async deleteChunk(chunk: Array<any>) {
     const deleteRequests = chunk.map(x => ({
       DeleteRequest: {
-        Key: { [this.primaryKey]: x }
+        Key: { [this._primaryKey]: x }
       }
     }));
     const params = {
@@ -73,10 +77,14 @@ class DataRepository {
     }
   }
 
-  async delete(...ids: Array<string>) {
+  async delete(...ids: Array<string>): Promise<Array<string>> {
+    if (ids.length === 0) {
+      return Promise.resolve([]);
+    }
     const deleteChunks = splitToChunks(ids, 25);
     const promises = deleteChunks.map(chunk => this.deleteChunk(chunk));
     const result = await Promise.all(promises);
+    await this.refresh();
     return result.reduce((accumulator, currentValue) => accumulator.concat(currentValue), []);
   }
 
