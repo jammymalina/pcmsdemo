@@ -164,10 +164,10 @@ class DataRepoComponent extends Component {
     this.panelElement = document.createElement('ul');
     this.panelElement.classList.add('nav', 'justify-content-between');
 
-    this.settingsButton = this.createButton('settings', this.settingsButtonClick.bind(this));
-    this.refreshButton = this.createButton('refresh-ccw', this.refreshButtonClick.bind(this));
-    this.removeButton = this.createButton('trash-2', this.removeButtonClick.bind(this));
-    this.checkButton = this.createButton('check', this.checkButtonClick.bind(this));
+    this.settingsButton = this.createButton('settings', 'Settings', this.settingsButtonClick.bind(this));
+    this.refreshButton = this.createButton('refresh-ccw', 'Refresh', this.refreshButtonClick.bind(this));
+    this.removeButton = this.createButton('trash-2', 'Delete selected', this.removeButtonClick.bind(this));
+    this.checkButton = this.createButton('check', 'Select all',this.checkButtonClick.bind(this));
 
     this.panelElement.appendChild(this.checkButton);
 
@@ -184,9 +184,11 @@ class DataRepoComponent extends Component {
     this.element.appendChild(this.tableElement);
   }
 
-  private createButton(icon: string, clickEventCallback: EventListener) {
+  private createButton(icon: string, tooltip: string, clickEventCallback: EventListener) {
     const button = document.createElement('button');
     button.setAttribute('type', 'button');
+    button.setAttribute('data-balloon', tooltip);
+    button.setAttribute('data-balloon-pos', 'down');
     button.classList.add('btn', 'btn-outline-primary');
     button.innerHTML = `<i data-feather="${icon}"></i>`;
     button.addEventListener('click', clickEventCallback);
@@ -201,6 +203,9 @@ class DataRepoComponent extends Component {
   private toggleSettingsButton() {
     const icon = (this.state.selected.size > 0 && this.state.selected.size >= this.state.repository.size) ?
       'x' : 'check';
+    const tooltip = (this.state.selected.size > 0 && this.state.selected.size >= this.state.repository.size) ?
+      'Clear selection' : 'Select all';
+    this.checkButton.setAttribute('data-balloon', tooltip);
     this.checkButton.innerHTML = `<i data-feather="${icon}"></i>`;
     feather.replace();
   }
